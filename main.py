@@ -24,6 +24,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://52.66.36.217", 
         "http://localhost:3000",  # Common frontend port
         "http://localhost:8000",  # API port
         "http://localhost"        # Generic localhost
