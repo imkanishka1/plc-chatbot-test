@@ -23,11 +23,9 @@ app = FastAPI(
 # Add CORS middleware for localhost development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://52.66.36.217", 
-        "http://localhost:3000",  # Common frontend port
-        "http://localhost:8000",  # API port
-        "http://localhost"        # Generic localhost
+    allow_origins=[ 
+        "http://52.66.36.217",
+        "http://52.66.36.217:80"    
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
