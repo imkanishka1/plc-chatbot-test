@@ -25,7 +25,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[ 
         "http://13.203.250.203",
-        "http://13.203.250.203:80"    
+        "http://13.203.250.203:80",
+        "https://finsightc.plc.lk",
+        "http://finsightc.plc.lk"
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
