@@ -84,6 +84,77 @@ def format_chat_history(chat_history: List[Dict[str, Any]]) -> str:
     return "\n".join(formatted_history)
 
 
+# def extract_response_data(result):
+#     """
+#     Extract and format response data from the LLM output for visualization.
+    
+#     This function handles financial values in PLC annual reports,
+#     making sure they're displayed with their full value (in thousands).
+#     """
+#     graph_needed_pattern = r'graph_needed:\s*"?(yes|no|[\w\s]+)"?'
+#     graph_type_pattern = r'graph_type:\s*(\S.*)'
+#     data_array_pattern = r'data_array:\s*(\[.*?\])'
+#     text_pattern = r'text_answer:\s*(\S.*)'
+    
+#     graph_needed = re.search(graph_needed_pattern, result, re.IGNORECASE)
+#     graph_type = re.search(graph_type_pattern, result, re.IGNORECASE)
+#     data_array = re.search(data_array_pattern, result, re.DOTALL | re.IGNORECASE)
+#     text_output = re.search(text_pattern, result, re.IGNORECASE)
+    
+#     graph_needed_value = graph_needed.group(1).strip().lower() if graph_needed else "no"
+#     graph_type_value = graph_type.group(1).strip().strip("'\"[]") if graph_type else "text"
+#     text_str = text_output.group(1).strip() if text_output else ""
+    
+#     data_array_value = None
+#     if data_array:
+#         try:
+#             data_array_text = data_array.group(1).strip()
+#             data_array_value = json.loads(data_array_text)
+#         except json.JSONDecodeError:
+#             data_array_value = None
+    
+#     # Check if we're dealing with financial data (financial values typically have "Rs." in the text)
+#     has_financial_data = "Rs." in text_str or "Rs " in text_str
+    
+#     if data_array_value and isinstance(data_array_value, list) and len(data_array_value) > 0:
+#         first_entry = data_array_value[0]
+#         possible_keys = list(first_entry.keys())
+#         label_key = possible_keys[0]
+#         data_keys = possible_keys[1:] if len(possible_keys) > 1 else []
+        
+#         labels = [str(item.get(label_key, "N/A")) for item in data_array_value]
+#         datasets = []
+        
+#         for item in data_array_value:
+#             item_data = []
+#             for key in data_keys:
+#                 value = item.get(key, None)
+#                 try:
+#                     if value is not None:
+#                         numeric_value = float(value)
+                        
+#                         # Instead of multiplying by 1000, multiply by 1000 if the value is too small
+#                         # This helps ensure financial values are represented in their full amount
+#                         # The condition checks if the value is likely in thousands already
+#                         if has_financial_data and numeric_value < 100000 and "million" not in text_str.lower():
+#                             numeric_value *= 1000
+                        
+#                         item_data.append(numeric_value)
+#                 except (ValueError, TypeError):
+#                     item_data.append(value)
+#             datasets.append(tuple(item_data))
+        
+#         formatted_data = {
+#             "labels": labels,
+#             "datasets": datasets,
+#             "legend": data_keys if data_keys else False
+#         }
+#     else:
+#         formatted_data = None
+    
+#     return graph_needed_value, graph_type_value, formatted_data, text_str
+
+
 def extract_response_data(result):
     """
     Extract and format response data from the LLM output for visualization.
@@ -104,6 +175,15 @@ def extract_response_data(result):
     graph_needed_value = graph_needed.group(1).strip().lower() if graph_needed else "no"
     graph_type_value = graph_type.group(1).strip().strip("'\"[]") if graph_type else "text"
     text_str = text_output.group(1).strip() if text_output else ""
+    
+    # Add these lines to handle empty or missing text_answer
+    if not text_str:
+        # Check if the result contains the default message for non-report questions
+        if 'Please ask anything about PLC annual report' in result:
+            text_str = 'Please ask anything about PLC annual report'
+        else:
+            # For general greetings or empty responses, provide a default message
+            text_str = 'Hello! I\'m here to help you analyze the Peoples Leasing and Finance PLC annual report. Please ask me anything about financial data, performance, or specific metrics.'
     
     data_array_value = None
     if data_array:
@@ -169,73 +249,6 @@ def get_response(user_query: str, chat_history: List[Dict[str, Any]] = None):
         chat_history = []
     
     current_timestamp = datetime.now().isoformat()
-    
-    # Template for RAG system to extract and format data for visualization
-    # template = """
-    # You are a financial data analyst for Peoples Leasing and Finance PLC, analyzing their annual report. Based on the retrieved context from the annual report, create a clear and accurate response to the user's question.
-    
-    # <CONTEXT>
-    # {context}
-    # </CONTEXT>
-    
-    # <CHAT_HISTORY>
-    # {chat_history}
-    # </CHAT_HISTORY>
-    
-    # User Question: {question}
-
-    # Important Instructions:
-    # 1. Base your answer ONLY on the context provided from the annual report - do not use external knowledge
-    # 2. Reference previous conversation in your answer when relevant
-    # 3. For financial values: 
-    #    - Do NOT convert or simplify the numbers
-    #    - Keep the format consistent with how they appear in the report
-    #    - If values are in millions or billions, keep that denomination
-    #    - All financial values should have exactly one decimal place in your response
-    # 4. For time-based data, describe clear trends
-    # 5. When comparing values, provide relative differences
-    # 6. Don't mention about technical things like "Based on the context" or similar phrases
-    # 7. Give your primary answer in one concise sentence
-    # 8. User question not related annual report say 'Please ask anything about PLC annual report'.
-    
-    # Visualization Guidelines:
-    # 1. For ANY comparison between time periods (like year-over-year, quarter-to-quarter, or specific dates):
-    #     - Use 'bar_chart' for two periods
-    #     - Use 'line_chart' for three or more periods
-    #     Example for bar_chart:
-    #     [
-    #         {{"period": "1 April 2022", "retained_earnings": 1265287000}},
-    #         {{"period": "31 March 2023", "retained_earnings": 1,544820000}}
-    #     ]
-
-    # 2. For breakdown of categories (like expense types, revenue sources, asset classes):
-    #     - Use 'pie_chart' when showing proportions of a whole
-    #     Example for pie_chart:
-    #     [
-    #         {{"category": "Interest Income", "value": 691195000}},
-    #         {{"category": "Fee Income", "value": 1544820000}},
-    #         {{"category": "Other Income", "value": 1265287000}}
-    #     ]
-
-    # 3. For performance indicators over multiple periods:
-    #     - Use 'line_chart' to show trends
-    #     Example for line_chart:
-    #     [
-    #         {{"year": "2019", "net_profit": 691195000}},
-    #         {{"year": "2020", "net_profit": 1265287000}},
-    #         {{"year": "2021", "net_profit": 154482000}},
-    #         {{"year": "2022", "net_profit": 979395000}},
-    #         {{"year": "2023", "net_profit": 687927000}}
-    #     ]
-
-    # Your response MUST follow this exact format:
-    # graph_needed: "yes" or "no" (always "yes" for numerical comparisons)
-    # graph_type: one of ['line_chart', 'pie_chart', 'bar_chart', 'text']
-    # data_array: [your data array if graph is needed]
-    # text_answer: Your detailed explanation
-
-    # Make sure the data_array contains actual numerical values (not formatted strings with commas) so they can be properly visualized. Currency symbols and formatting should only appear in the text_answer.
-    # """
 
     # Template for RAG system to extract and format data for visualization
     template = """
@@ -252,6 +265,7 @@ def get_response(user_query: str, chat_history: List[Dict[str, Any]] = None):
     User Question: {question}
 
     Important Instructions:
+    **NOTE : For general greetings (Hi, Hello, etc.) or non-report questions say 'Hello! I'm here to help you analyze the Peoples Leasing and Finance PLC annual report. Please ask me anything about financial data and performance.
     1. Base your answer ONLY on the context provided from the annual report - do not use external knowledge
     2. Reference previous conversation in your answer when relevant
     3. For financial values: 
@@ -264,7 +278,6 @@ def get_response(user_query: str, chat_history: List[Dict[str, Any]] = None):
     5. When comparing values, provide relative differences
     6. Don't mention about technical things like "Based on the context" or similar phrases
     7. Give your primary answer in one concise sentence
-    8. User question not related annual report say 'Please ask anything about PLC annual report'.
     
     Visualization Guidelines:
     1. For ANY comparison between time periods (like year-over-year, quarter-to-quarter, or specific dates):
@@ -393,3 +406,71 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+  # Template for RAG system to extract and format data for visualization
+    # template = """
+    # You are a financial data analyst for Peoples Leasing and Finance PLC, analyzing their annual report. Based on the retrieved context from the annual report, create a clear and accurate response to the user's question.
+    
+    # <CONTEXT>
+    # {context}
+    # </CONTEXT>
+    
+    # <CHAT_HISTORY>
+    # {chat_history}
+    # </CHAT_HISTORY>
+    
+    # User Question: {question}
+
+    # Important Instructions:
+    # 1. Base your answer ONLY on the context provided from the annual report - do not use external knowledge
+    # 2. Reference previous conversation in your answer when relevant
+    # 3. For financial values: 
+    #    - Do NOT convert or simplify the numbers
+    #    - Keep the format consistent with how they appear in the report
+    #    - If values are in millions or billions, keep that denomination
+    #    - All financial values should have exactly one decimal place in your response
+    # 4. For time-based data, describe clear trends
+    # 5. When comparing values, provide relative differences
+    # 6. Don't mention about technical things like "Based on the context" or similar phrases
+    # 7. Give your primary answer in one concise sentence
+    # 8. User question not related annual report say 'Please ask anything about PLC annual report'.
+    
+    # Visualization Guidelines:
+    # 1. For ANY comparison between time periods (like year-over-year, quarter-to-quarter, or specific dates):
+    #     - Use 'bar_chart' for two periods
+    #     - Use 'line_chart' for three or more periods
+    #     Example for bar_chart:
+    #     [
+    #         {{"period": "1 April 2022", "retained_earnings": 1265287000}},
+    #         {{"period": "31 March 2023", "retained_earnings": 1,544820000}}
+    #     ]
+
+    # 2. For breakdown of categories (like expense types, revenue sources, asset classes):
+    #     - Use 'pie_chart' when showing proportions of a whole
+    #     Example for pie_chart:
+    #     [
+    #         {{"category": "Interest Income", "value": 691195000}},
+    #         {{"category": "Fee Income", "value": 1544820000}},
+    #         {{"category": "Other Income", "value": 1265287000}}
+    #     ]
+
+    # 3. For performance indicators over multiple periods:
+    #     - Use 'line_chart' to show trends
+    #     Example for line_chart:
+    #     [
+    #         {{"year": "2019", "net_profit": 691195000}},
+    #         {{"year": "2020", "net_profit": 1265287000}},
+    #         {{"year": "2021", "net_profit": 154482000}},
+    #         {{"year": "2022", "net_profit": 979395000}},
+    #         {{"year": "2023", "net_profit": 687927000}}
+    #     ]
+
+    # Your response MUST follow this exact format:
+    # graph_needed: "yes" or "no" (always "yes" for numerical comparisons)
+    # graph_type: one of ['line_chart', 'pie_chart', 'bar_chart', 'text']
+    # data_array: [your data array if graph is needed]
+    # text_answer: Your detailed explanation
+
+    # Make sure the data_array contains actual numerical values (not formatted strings with commas) so they can be properly visualized. Currency symbols and formatting should only appear in the text_answer.
+    # """
