@@ -7,3 +7,9 @@ langchain-core==0.3.50
 fastapi[standard]==0.115.2
 uvicorn[standard]==0.28.0
 gunicorn==21.2.0
+
+# MySQL connector
+mysql-connector-python==8.2.0
+
+# Timezone handling
+pytz==2023.3
