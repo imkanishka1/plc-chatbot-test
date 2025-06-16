@@ -26,19 +26,15 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",        # Development
-        "http://localhost:80",          # Frontend served by Nginx
-        "http://localhost",             # Generic localhost
-        "http://127.0.0.1",            # Alternative localhost
-        "http://127.0.0.1:80",         # Alternative with port
-        "http://13.203.250.203",       # Your current public IP
-        "http://13.203.250.203:80",    # Your current public IP with port 80
-        "http://13.203.250.203:1",     # Add the specific origin with port 1
+    allow_origins=[ 
+        "http://13.203.250.203",
+        "http://13.203.250.203:80",
+        "https://finsightc.plc.lk",
+        "http://finsightc.plc.lk"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Load environment variables
