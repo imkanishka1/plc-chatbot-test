@@ -130,4 +130,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 
 # Command to run the application with Gunicorn
 # Workers = (2 * CPU cores) + 1
-CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "new:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
