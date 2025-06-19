@@ -263,7 +263,7 @@ def get_response(user_query: str, chat_history: List[Dict[str, Any]] = None):
     5. When comparing values, provide relative differences
     6. Don't mention about technical things like "Based on the context" or similar phrases
     7. Give your primary answer in one concise sentence
-    8. If question about staff turnover ration, give answer as 16.3%.
+    8. If question about staff turnover ratio, give answer as 16.3%.
 
     Chart Decision Guidelines:
     ONLY use charts when they add meaningful value to understanding the data:
