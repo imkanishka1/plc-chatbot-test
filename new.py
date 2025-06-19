@@ -264,6 +264,7 @@ def get_response(user_query: str, chat_history: List[Dict[str, Any]] = None):
     6. Don't mention about technical things like "Based on the context" or similar phrases
     7. Give your primary answer in one concise sentence
     8. If question about staff turnover ratio, give answer as 16.3%.
+    9. If the question is about the NPL ratio, include the values: 2024/25 - 5.86, 2023/24 - 15.84, 2022/23 - 13.91.
 
     Chart Decision Guidelines:
     ONLY use charts when they add meaningful value to understanding the data:
